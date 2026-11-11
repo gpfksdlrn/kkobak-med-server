@@ -1,0 +1,30 @@
+# 비밀값
+.env
+
+# Gradle / 빌드
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+.vscode/
+out/
+
+# OS
+.DS_Store
+
+# 개인 학습 노트 (나만 보는 공부 자료)
+docs/learning/
+
+# AI 도구 상태/개인 응답 규칙 (작업 환경용, 프로젝트 코드 아님)
+.omc/
+.claude/
+.clinerules/
+.cursor/
+.windsurf/
+.opencode/
+.github/copilot-instructions.md
+AGENTS.md
+CLAUDE.md

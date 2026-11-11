@@ -1,0 +1,23 @@
+services:
+  postgres:
+    image: postgres:18
+    container_name: kkobak-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      TZ: Asia/Seoul
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      # postgres 18 이미지부터는 /var/lib/postgresql 를 마운트한다 (버전별 폴더가 안에 생긴다)
+      - kkobak-postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  kkobak-postgres-data:
