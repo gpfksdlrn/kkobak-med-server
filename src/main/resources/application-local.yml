@@ -1,0 +1,27 @@
+# 내 컴퓨터(Docker Postgres)에서 개발할 때만 쓰는 설정 — docker-compose.yml 과 값이 맞아야 한다.
+spring:
+  config:
+    # 서버 폴더의 .env(.gitignore 됨)를 읽는다 — 비밀번호는 .env 한 곳에서만 관리. 파일이 없으면 무시(optional)
+    import: optional:file:.env[.properties]
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/kkobak}
+    username: ${DB_USERNAME:kkobak}
+    # 환경변수 DB_PASSWORD → .env 의 POSTGRES_PASSWORD → 둘 다 없으면 기본값 순서로 쓴다
+    password: ${DB_PASSWORD:${POSTGRES_PASSWORD:kkobak-local-dev}}
+
+server:
+  # 브라우저는 쿠키를 포트 구분 없이 보낸다. localhost 의 다른 앱 쿠키(예전 Supabase 로그인 쿠키 등, 수 KB 에 여러 조각)가
+  # localhost:8080 요청에도 실려서 Tomcat 기본 헤더 한도(8KB)를 넘을 수 있다 → "Request header is too large".
+  # 로컬에서만 생기는 문제라 local 프로필에서만 한도를 늘린다. (운영은 서버/프론트 도메인이 달라 해당 없음)
+  max-http-request-header-size: 64KB
+
+kkobak:
+  auth:
+    # kkobak-med 전용 Google OAuth 클라이언트 ID (공개값이라 설정 파일에 둬도 된다. 클라이언트 시크릿은 쓰지 않는다)
+    google-client-id: ${GOOGLE_CLIENT_ID:777795391036-af5hi507ond2c56fiffstp50lcsl2p4s.apps.googleusercontent.com}
+    jwt-secret: ${JWT_SECRET:local-dev-jwt-secret-must-be-at-least-32-bytes!!}
+    refresh-cookie-secure: false               # 로컬은 http 라서 Secure 를 끈다
+
+logging:
+  level:
+    org.hibernate.SQL: debug   # 실행되는 SQL 을 로그로 본다 (학습/디버깅용)
