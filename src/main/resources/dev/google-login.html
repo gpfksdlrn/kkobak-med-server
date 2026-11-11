@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>꼬박약 로그인 테스트 (로컬 전용)</title>
+  <script src="https://accounts.google.com/gsi/client" async></script>
+  <style>
+    body { font-family: -apple-system, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px; color: #222; }
+    h1 { font-size: 20px; }
+    .box { border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin: 16px 0; }
+    textarea { width: 100%; height: 90px; font-family: monospace; font-size: 12px; }
+    button { margin: 4px 8px 4px 0; padding: 6px 12px; cursor: pointer; }
+    .muted { color: #888; font-size: 13px; }
+    pre { background: #f6f6f6; padding: 12px; border-radius: 6px; white-space: pre-wrap; word-break: break-all; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <h1>꼬박약 Google 로그인 테스트</h1>
+  <p class="muted">로컬 개발 전용 페이지입니다. 운영 서버에는 없습니다.</p>
+
+  <div class="box">
+    <div id="g_id_onload" data-client_id="{{GOOGLE_CLIENT_ID}}" data-callback="handleCredential" data-auto_prompt="false"></div>
+    <div class="g_id_signin" data-type="standard" data-locale="ko"></div>
+  </div>
+
+  <div class="box">
+    <div><strong>Access Token</strong> <span class="muted">(Swagger 오른쪽 위 Authorize 에 붙여 넣기)</span></div>
+    <textarea id="accessToken" readonly placeholder="로그인하면 여기에 표시됩니다"></textarea>
+    <button onclick="copyToken()">토큰 복사</button>
+    <button onclick="refreshToken()">재발급 (쿠키 사용)</button>
+    <button onclick="callMe()">내 정보 호출</button>
+    <button onclick="logout()">로그아웃</button>
+    <a href="/swagger-ui.html" target="_blank">Swagger 열기 →</a>
+  </div>
+
+  <div><strong>응답</strong></div>
+  <pre id="log">아직 요청이 없습니다.</pre>
+
+  <script>
+    function show(title, status, body) {
+      document.getElementById('log').textContent = title + ' → HTTP ' + status + '\n' + JSON.stringify(body, null, 2);
+    }
+
+    // Google 이 로그인 후 ID 토큰(credential)을 넘겨준다 → 서버에 보내 우리 토큰으로 교환
+    async function handleCredential(response) {
+      const result = await fetch('/api/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ idToken: response.credential })
+      });
+      const body = await result.json();
+      if (body.success) document.getElementById('accessToken').value = body.data.accessToken;
+      show('POST /api/auth/google', result.status, body);
+    }
+
+    async function refreshToken() {
+      const result = await fetch('/api/auth/refresh', { method: 'POST', credentials: 'include' });
+      const body = await result.json();
+      if (body.success) document.getElementById('accessToken').value = body.data.accessToken;
+      show('POST /api/auth/refresh', result.status, body);
+    }
+
+    async function callMe() {
+      const token = document.getElementById('accessToken').value;
+      const result = await fetch('/api/users/me', { headers: { 'Authorization': 'Bearer ' + token } });
+      show('GET /api/users/me', result.status, await result.json());
+    }
+
+    async function logout() {
+      const result = await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+      document.getElementById('accessToken').value = '';
+      show('POST /api/auth/logout', result.status, await result.json());
+    }
+
+    function copyToken() {
+      navigator.clipboard.writeText(document.getElementById('accessToken').value);
+    }
+  </script>
+</body>
+</html>
