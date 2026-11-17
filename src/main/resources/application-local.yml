@@ -21,6 +21,7 @@ kkobak:
     google-client-id: ${GOOGLE_CLIENT_ID:777795391036-af5hi507ond2c56fiffstp50lcsl2p4s.apps.googleusercontent.com}
     jwt-secret: ${JWT_SECRET:local-dev-jwt-secret-must-be-at-least-32-bytes!!}
     refresh-cookie-secure: false               # 로컬은 http 라서 Secure 를 끈다
+    allowed-origins: ${ALLOWED_ORIGINS:http://localhost:3000}   # 로컬 프론트(Next.js dev 서버)
 
 logging:
   level:
