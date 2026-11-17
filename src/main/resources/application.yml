@@ -32,13 +32,13 @@ management:
 # 인증 (Google 로그인 + JWT). 비밀값은 환경변수로 받는다.
 kkobak:
   auth:
-    google-client-id: ${GOOGLE_CLIENT_ID}       # 프론트의 Google 로그인과 같은 OAuth 클라이언트 ID
-    jwt-secret: ${JWT_SECRET}                   # Access Token 서명 키 (32바이트 이상)
+    google-client-id: ${GOOGLE_CLIENT_ID:}      # 프론트의 Google 로그인과 같은 OAuth 클라이언트 ID
+    jwt-secret: ${JWT_SECRET:}                  # Access Token 서명 키 (32바이트 이상)
     access-token-validity: 30m
     refresh-token-validity: 14d
     refresh-cookie-secure: true                 # HTTPS 에서만 쿠키 전송
     refresh-cookie-same-site: Lax
-    allowed-origins: ${ALLOWED_ORIGINS:http://localhost:3000}   # CORS 허용할 프론트 주소 (쉼표로 여러 개)
+    allowed-origins: ${ALLOWED_ORIGINS:}        # CORS 허용할 프론트 주소 (쉼표로 여러 개). 로컬 기본값은 application-local.yml
 
 springdoc:
   # 로컬 전용 개발 도구(/dev/**)는 API 문서에 넣지 않는다
