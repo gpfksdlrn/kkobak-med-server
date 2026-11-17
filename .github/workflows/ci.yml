@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+
+      # Gradle 캐시를 저장해 두 번째 실행부터 의존성 다운로드를 건너뛴다
+      - uses: gradle/actions/setup-gradle@v6
+
+      # 컴파일 + 전체 테스트. ubuntu 러너에는 Docker 가 있어서 Testcontainers 가 그대로 동작한다
+      - run: ./gradlew build
+
+      # 테스트가 실패하면 어떤 테스트가 왜 깨졌는지 HTML 리포트를 내려받아 볼 수 있게 남긴다
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-report
+          path: build/reports/tests/test/
