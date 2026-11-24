@@ -10,7 +10,7 @@ COMPOSE="docker compose -f docker-compose.prod.yml"
 REGISTRY="${IMAGE%%/*}"
 REGION=ap-northeast-2
 
-# 1) 배포 파일(compose, Caddyfile)도 최신으로 맞춘다. 저장소 주인이 ec2-user 라서 그 사용자로 받는다
+# 1) 배포 파일(compose, nginx 설정)도 최신으로 맞춘다. 저장소 주인이 ec2-user 라서 그 사용자로 받는다
 sudo -u ec2-user git -C "$REPO_DIR" pull --ff-only
 
 cd "$REPO_DIR/deploy"
@@ -25,7 +25,7 @@ fi
 # 3) EC2 역할 권한으로 ECR 에 로그인해서 새 이미지를 받고, 바뀐 컨테이너만 다시 띄운다
 aws ecr get-login-password --region "$REGION" | docker login --username AWS --password-stdin "$REGISTRY"
 $COMPOSE pull app
-$COMPOSE up -d --no-build
+$COMPOSE up -d --no-build --remove-orphans
 
 # 4) 새 서버가 정상인지 확인한다 (Spring 시작에 20초 안팎 걸림)
 for i in $(seq 1 30); do
