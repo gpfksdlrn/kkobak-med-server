@@ -18,6 +18,9 @@ services:
       - app
 
   app:
+    # 평소에는 GitHub Actions 가 ECR 에 올린 이미지를 받는다 (deploy.sh 가 .env 의 APP_IMAGE 를 갱신)
+    # APP_IMAGE 가 없으면 서버에서 직접 빌드한 로컬 이미지 이름을 쓴다 (up -d --build)
+    image: ${APP_IMAGE:-kkobak-med-server:local}
     build: ..                     # 저장소 루트의 Dockerfile 로 이미지를 만든다
     restart: unless-stopped
     environment:
@@ -42,7 +45,9 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       TZ: Asia/Seoul
-    # 5432 도 밖에 열지 않는다. 접속이 필요하면 SSH 터널로 들어온다
+    # 서버 자신(127.0.0.1)에서만 열린다 → 인터넷에서는 닫혀 있고, SSH 터널(DataGrip 등)로만 들어온다
+    ports:
+      - '127.0.0.1:5432:5432'
     volumes:
       - db-data:/var/lib/postgresql
     mem_limit: 512m
