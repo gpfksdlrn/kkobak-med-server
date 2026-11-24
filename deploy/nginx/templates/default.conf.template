@@ -1,0 +1,50 @@
+# nginx 공식 이미지는 /etc/nginx/templates/*.template 의 ${환경변수} 를 채워서 /etc/nginx/conf.d/ 에 넣는다.
+# 정의된 환경변수(DOMAIN)만 바뀌고, nginx 변수($host 등)는 그대로 남는다.
+
+# 80: Let's Encrypt 인증서 발급/갱신 확인 + 나머지는 https 로 이동
+server {
+    listen 80;
+    listen [::]:80;
+    server_name ${DOMAIN};
+
+    # certbot 이 webroot 방식으로 "이 도메인의 주인" 임을 증명할 때 쓰는 경로
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+# 443: 실제 서비스. HTTPS 를 풀어서 Spring(app:8080)으로 넘긴다 (리버스 프록시)
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
+    server_name ${DOMAIN};
+
+    ssl_certificate     /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_session_cache   shared:SSL:10m;
+    ssl_session_timeout 1d;
+
+    # 브라우저가 이후에도 https 로만 접속하게 (1년)
+    add_header Strict-Transport-Security "max-age=31536000" always;
+
+    gzip on;
+    gzip_types application/json text/plain text/css application/javascript;
+
+    client_max_body_size 1m;
+
+    location / {
+        proxy_pass http://app:8080;
+        # 원래 요청 정보를 Spring 에 전달 (없으면 Spring 은 모든 요청이 nginx 에서 온 http 요청으로 보인다)
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+    }
+}

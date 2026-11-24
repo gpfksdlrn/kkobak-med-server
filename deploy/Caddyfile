@@ -1,6 +1,0 @@
-# DOMAIN(예: api.kkobak-med.click)으로 들어온 요청에 HTTPS 인증서를 자동 발급(Let's Encrypt)하고 Spring 서버로 넘긴다.
-# 인증서 발급에는 DNS 가 이 서버 IP 를 가리키고, 80/443 포트가 열려 있어야 한다.
-{$DOMAIN} {
-	encode gzip
-	reverse_proxy app:8080
-}

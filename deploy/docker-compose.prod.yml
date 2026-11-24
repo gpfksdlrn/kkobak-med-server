@@ -1,21 +1,32 @@
-# 운영 서버(EC2) 한 대에서 Caddy(HTTPS) + Spring 서버 + PostgreSQL 을 함께 띄운다.
-# 사용법 (EC2 의 deploy 폴더에서): docker compose -f docker-compose.prod.yml up -d --build
+# 운영 서버(EC2) 한 대에서 Nginx(HTTPS) + Certbot(인증서 갱신) + Spring 서버 + PostgreSQL 을 함께 띄운다.
+# 처음 한 번: ./init-letsencrypt.sh (인증서 발급). 이후 배포: deploy.sh (GitHub Actions 가 실행)
 # 값은 같은 폴더의 .env 에서 읽는다 (.env.example 참고, .env 는 커밋하지 않는다).
 services:
-  caddy:
-    image: caddy:2
+  nginx:
+    image: nginx:1.30             # 안정(stable) 버전 계열
     restart: unless-stopped
     ports:
-      - '80:80'        # HTTP → HTTPS 리다이렉트와 인증서 발급 확인용
+      - '80:80'                   # 인증서 발급 확인(acme-challenge) + https 로 이동
       - '443:443'
     environment:
-      DOMAIN: ${DOMAIN}
+      DOMAIN: ${DOMAIN}           # templates/*.template 의 ${DOMAIN} 을 채운다
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy-data:/data          # 발급받은 인증서 보관 (지우면 재발급 → 발급 횟수 제한에 걸릴 수 있음)
-      - caddy-config:/config
+      - ./nginx/templates:/etc/nginx/templates:ro
+      - certbot-etc:/etc/letsencrypt:ro
+      - certbot-www:/var/www/certbot:ro
+    # 6시간마다 설정을 다시 불러와서, certbot 이 갱신한 인증서를 끊김 없이 반영한다
+    command: /bin/sh -c 'while :; do sleep 6h; nginx -s reload; done & exec /docker-entrypoint.sh nginx -g "daemon off;"'
     depends_on:
       - app
+
+  certbot:
+    image: certbot/certbot:v5.10.0
+    restart: unless-stopped
+    volumes:
+      - certbot-etc:/etc/letsencrypt   # 발급받은 인증서 보관 (지우면 재발급 → 발급 횟수 제한에 걸릴 수 있음)
+      - certbot-www:/var/www/certbot
+    # 12시간마다 갱신 시도. 만료 30일 전부터만 실제로 갱신한다 (Let's Encrypt 인증서는 90일짜리)
+    entrypoint: /bin/sh -c 'trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done'
 
   app:
     # 평소에는 GitHub Actions 가 ECR 에 올린 이미지를 받는다 (deploy.sh 가 .env 의 APP_IMAGE 를 갱신)
@@ -31,7 +42,7 @@ services:
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       JWT_SECRET: ${JWT_SECRET}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
-    # 8080 은 밖에 열지 않는다. 바깥 요청은 Caddy(443)만 받아서 안쪽으로 넘긴다
+    # 8080 은 밖에 열지 않는다. 바깥 요청은 Nginx(443)만 받아서 안쪽으로 넘긴다
     mem_limit: 1g                 # Dockerfile 의 MaxRAMPercentage=75 가 이 한도를 기준으로 힙을 잡는다
     depends_on:
       db:
@@ -58,6 +69,6 @@ services:
       retries: 10
 
 volumes:
-  caddy-data:
-  caddy-config:
+  certbot-etc:
+  certbot-www:
   db-data:
