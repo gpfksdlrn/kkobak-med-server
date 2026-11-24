@@ -8,3 +8,5 @@ docs
 .omc
 .claude
 *.md
+**/.env
+deploy
